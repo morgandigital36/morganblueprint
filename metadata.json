@@ -1,0 +1,5 @@
+{
+  "name": "AI Blueprint Generator",
+  "description": "Brainstorming AI app to generate workflow and core features for AI builders like Trae, Lovable, etc.",
+  "requestFramePermissions": []
+}
