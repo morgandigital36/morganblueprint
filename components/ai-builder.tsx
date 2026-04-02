@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Copy, CheckCircle2, ArrowRight, Sparkles, Download, FileText, History, Trash2, Zap, Moon, Sun, Layers, Plus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
+import JSZip from 'jszip';
 
 async function fetchFromOpenRouter(userPrompt: string) {
   const apiKey = localStorage.getItem('openrouter_apikey') || "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";
@@ -501,6 +502,42 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
     } catch (error) {
       console.error('Error exporting PDF:', error);
       alert('Gagal mengekspor dokumen ke PDF.');
+    }
+  };
+
+  const exportToZip = async () => {
+    try {
+      const zip = new JSZip();
+      const folderName = formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const projectFolder = zip.folder(folderName);
+      
+      if (projectFolder) {
+        projectFolder.file('01-workflow.md', workflowDoc);
+        projectFolder.file('02-ui-ux-design.md', uiUxDoc);
+        projectFolder.file('03-core-features.md', coreFeaturesDoc);
+        projectFolder.file('04-ai-system-prompt.md', aiInstructionsDoc);
+        
+        const summary = `
+Project Name: ${formData.name}
+Project Type: ${formData.type}
+Framework: ${formData.framework}
+Database: ${formData.database}
+Description: ${formData.description}
+Generated on: ${new Date().toLocaleString()}
+        `.trim();
+        projectFolder.file('project-summary.txt', summary);
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = `${folderName}_blueprint.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error generating ZIP:', error);
+      alert('Gagal membuat file ZIP.');
     }
   };
 
@@ -1024,6 +1061,15 @@ ${aiInstructionsDoc}
               </CardContent>
               <CardFooter className="bg-slate-50 p-6 flex justify-between border-t">
                 <Button variant="outline" onClick={() => setStep(1)}>Start New Project</Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={exportToZip} 
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Bulk Export All (ZIP)
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           </motion.div>
