@@ -849,7 +849,10 @@ ${aiInstructionsDoc}
                         value={manualFramework}
                         onChange={(e) => {
                           setManualFramework(e.target.value);
-                          if (e.target.value) setFormData(prev => ({...prev, frameworks: []}));
+                          setFormData(prev => ({...prev, frameworks: []}));
+                        }}
+                        onFocus={() => {
+                          setFormData(prev => ({...prev, frameworks: []}));
                         }}
                         className="h-8 text-xs bg-black/20 border-white/5 focus:border-indigo-500/50"
                       />
@@ -881,7 +884,10 @@ ${aiInstructionsDoc}
                         value={manualDatabase}
                         onChange={(e) => {
                           setManualDatabase(e.target.value);
-                          if (e.target.value) setFormData(prev => ({...prev, databases: []}));
+                          setFormData(prev => ({...prev, databases: []}));
+                        }}
+                        onFocus={() => {
+                          setFormData(prev => ({...prev, databases: []}));
                         }}
                         className="h-8 text-xs bg-black/20 border-white/5 focus:border-indigo-500/50"
                       />
