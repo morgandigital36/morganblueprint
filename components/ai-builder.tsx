@@ -42,6 +42,37 @@ async function fetchFromOpenRouter(userPrompt: string) {
   return data.choices?.[0]?.message?.content || "";
 }
 
+async function fetchFromGemini(userPrompt: string) {
+  const apiKey = localStorage.getItem('gemini_apikey') || "";
+  const modelName = localStorage.getItem('gemini_model') || "gemini-1.5-flash";
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: userPrompt }] }]
+    })
+  });
+  
+  if (!response.ok) {
+     const errorBody = await response.text();
+     console.error("Gemini API error:", errorBody);
+     throw new Error("Gemini API error");
+  }
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
+
+async function callAI(userPrompt: string) {
+  const provider = localStorage.getItem('api_provider') || 'openrouter';
+  if (provider === 'gemini') {
+    return fetchFromGemini(userPrompt);
+  }
+  return fetchFromOpenRouter(userPrompt);
+}
+
 interface BlueprintHistory {
   id: string;
   timestamp: number;
@@ -57,24 +88,53 @@ const QUICK_TEMPLATES = [
     name: 'SaaS Dashboard',
     type: 'SaaS',
     description: 'A comprehensive dashboard for managing business metrics, user subscriptions, and data analytics with a focus on clean UI.',
-    framework: 'Next.js (App Router)',
-    database: 'Supabase (PostgreSQL)'
+    frameworks: ['Next.js (App Router)'],
+    databases: ['Supabase (PostgreSQL)']
   },
   {
     name: 'E-commerce App',
     type: 'E-commerce',
     description: 'Full-featured online store with product catalog, shopping cart, checkout flow, and order management.',
-    framework: 'Next.js (App Router)',
-    database: 'PostgreSQL (Prisma)'
+    frameworks: ['Next.js (App Router)'],
+    databases: ['PostgreSQL (Prisma/Drizzle)']
   },
   {
     name: 'Social Network',
     type: 'Social Network',
     description: 'Platform for user interaction, profiles, feeds, real-time messaging, and content sharing.',
-    framework: 'React (Vite)',
-    database: 'Firebase (Firestore)'
+    frameworks: ['React (Vite)'],
+    databases: ['Firebase (Firestore)']
   }
 ];
+
+const FRAMEWORKS = [
+  "Next.js (App Router)",
+  "Next.js (Pages Router)",
+  "React (Vite)",
+  "Remix",
+  "Astro",
+  "Nuxt (Vue)",
+  "SvelteKit",
+  "SolidJS / SolidStart",
+  "Qwik City",
+  "Hono (Frontend)"
+];
+
+const DATABASES = [
+  "Supabase (PostgreSQL)",
+  "Firebase (Firestore)",
+  "Neon (Serverless Postgres)",
+  "Turso (SQLite/LibSQL)",
+  "PostgreSQL (Prisma/Drizzle)",
+  "PlanetScale (MySQL)",
+  "MongoDB Atlas",
+  "PocketBase",
+  "Appwrite",
+  "Convex",
+  "Upstash (Redis/Kafka)",
+  "Tidak pakai"
+];
+
 
 const Mermaid = ({ chart }: { chart: string }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -158,9 +218,13 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
     name: '',
     type: '',
     description: '',
-    framework: '',
-    database: '',
+    frameworks: [] as string[],
+    databases: [] as string[],
   });
+
+  const [manualFramework, setManualFramework] = useState('');
+  const [manualDatabase, setManualDatabase] = useState('');
+
 
   // Generated Data
   const [suggestedFeatures, setSuggestedFeatures] = useState<FeatureCategory[]>([]);
@@ -249,16 +313,59 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
     setCustomFeatureDesc('');
   };
 
-  const applyTemplate = (template: typeof QUICK_TEMPLATES[0]) => {
-    setFormData(template);
+  const applyTemplate = (template: any) => {
+    setFormData({
+      ...formData,
+      name: template.name,
+      type: template.type,
+      description: template.description,
+      frameworks: template.frameworks || [],
+      databases: template.databases || [],
+    });
+    setManualFramework('');
+    setManualDatabase('');
   };
 
+  const toggleFramework = (framework: string) => {
+    setFormData(prev => ({
+      ...prev,
+      frameworks: prev.frameworks.includes(framework)
+        ? prev.frameworks.filter(f => f !== framework)
+        : [...prev.frameworks, framework]
+    }));
+  };
+
+  const toggleDatabase = (database: string) => {
+    setFormData(prev => ({
+      ...prev,
+      databases: prev.databases.includes(database)
+        ? prev.databases.filter(d => d !== database)
+        : [...prev.databases, database]
+    }));
+  };
+
+  const getFrameworksText = () => {
+    const list = [...formData.frameworks];
+    if (manualFramework.trim()) list.push(manualFramework.trim());
+    return list.join(', ');
+  };
+
+  const getDatabasesText = () => {
+    const list = [...formData.databases];
+    if (manualDatabase.trim()) list.push(manualDatabase.trim());
+    return list.join(', ');
+  };
+
+
   const handleGenerateFeatures = async () => {
-    if (!formData.name || !formData.description || !formData.framework || !formData.database) return;
+    if (!formData.name || !formData.description || (formData.frameworks.length === 0 && !manualFramework) || (formData.databases.length === 0 && !manualDatabase)) return;
     
     setLoading(true);
     try {
-      const prompt = `Daftarkan 10-15 fitur wajib dan unik untuk aplikasi bernama "${formData.name}" (Jenis: ${formData.type}) dengan deskripsi: "${formData.description}". Framework yang digunakan adalah ${formData.framework} dan Database ${formData.database}.
+      const frameworkText = getFrameworksText();
+      const databaseText = getDatabasesText();
+      
+      const prompt = `Daftarkan 10-15 fitur wajib dan unik untuk aplikasi bernama "${formData.name}" (Jenis: ${formData.type}) dengan deskripsi: "${formData.description}". Framework yang digunakan adalah ${frameworkText} dan Database ${databaseText}.
       
       Bagi menjadi kategori: "User Auth", "Data Management", "UI/UX", dan "Integration".
       
@@ -272,7 +379,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
         }
       ]`;
 
-      const responseText = await fetchFromOpenRouter(prompt + "\n\nCRITICAL MUST FOLLOW: Return ONLY a valid JSON array matching the requested schema. DO NOT wrap the json in code block symbols like ```json. Start and end exactly with [ and ].");
+      const responseText = await callAI(prompt + "\n\nCRITICAL MUST FOLLOW: Return ONLY a valid JSON array matching the requested schema. DO NOT wrap the json in code block symbols like ```json. Start and end exactly with [ and ].");
       let rawText = responseText.trim();
       if (rawText.startsWith('```json')) rawText = rawText.replace(/^```json/g, '').replace(/```$/g, '').trim();
       if (rawText.startsWith('```')) rawText = rawText.replace(/^```/g, '').replace(/```$/g, '').trim();
@@ -303,7 +410,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
         .map(f => `- ${f.name}: ${f.description}`)
         .join('\n');
 
-      const prompt = `Saya sedang membangun aplikasi bernama "${formData.name}" (Jenis: ${formData.type}) menggunakan ${formData.framework} dan ${formData.database}.
+      const prompt = `Saya sedang membangun aplikasi bernama "${formData.name}" (Jenis: ${formData.type}) menggunakan ${getFrameworksText()} dan ${getDatabasesText()}.
       Deskripsi: ${formData.description}
       
       Fitur yang akan diimplementasikan:
@@ -320,7 +427,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       
       Gunakan bahasa yang profesional dan komprehensif.`;
 
-      const responseText = await fetchFromOpenRouter(prompt);
+      const responseText = await callAI(prompt);
 
       setWorkflowDoc(responseText || '');
       setStep(3);
@@ -335,7 +442,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
   const handleGenerateUIUX = async () => {
     setLoading(true);
     try {
-      const prompt = `Berdasarkan aplikasi "${formData.name}" (${formData.framework}) dengan workflow berikut:
+      const prompt = `Berdasarkan aplikasi "${formData.name}" (${getFrameworksText()}) dengan workflow berikut:
       
       ${workflowDoc}
       
@@ -355,7 +462,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       
       Gunakan bahasa teknis yang rapi dan deskriptif.`;
 
-      const responseText = await fetchFromOpenRouter(prompt);
+      const responseText = await callAI(prompt);
 
       setUiUxDoc(responseText || '');
       setStep(4);
@@ -376,7 +483,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
         .map(f => `- ${f.name}`)
         .join('\n');
 
-      const prompt = `Berdasarkan aplikasi "${formData.name}" (${formData.framework} + ${formData.database}) dengan workflow berikut:
+      const prompt = `Berdasarkan aplikasi "${formData.name}" (${getFrameworksText()} + ${getDatabasesText()}) dengan workflow berikut:
       
       ${workflowDoc}
       
@@ -385,7 +492,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       
       Buat dokumen "Core Features & Stability" yang komprehensif dalam format Markdown. Dokumen ini WAJIB menjabarkan teks mendetail dan SANGAT PANJANG (minimal 500 kata):
       1. Functional Requirements: URAIKAN secara tertulis dalam paragraf yang panjang detail teknis dari operasi setiap fitur (alur input, proses, output).
-      2. Database Schema: JELASKAN secara naratif dan ekstensif struktur relasi tabel yang dioptimalkan untuk ${formData.database}, beserta tipe data dan alasan rincian strukturnya.
+      2. Database Schema: JELASKAN secara naratif dan ekstensif struktur relasi tabel yang dioptimalkan untuk ${getDatabasesText()}, beserta tipe data dan alasan rincian strukturnya.
       3. Security Protocol: BERIKAN teks deskripsi yang panjang mengenai aturan Auth, Middleware, Encryption, dan konsep RLS/Security Rules.
       4. Error Handling Strategy: JELASKAN strategi fallback dan validasinya secara komprehensif.
       
@@ -393,7 +500,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       
       Gunakan bahasa teknis yang rapi penuh elaborasi.`;
 
-      const responseText = await fetchFromOpenRouter(prompt);
+      const responseText = await callAI(prompt);
 
       setCoreFeaturesDoc(responseText || '');
       setStep(5);
@@ -412,7 +519,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       
       Aplikasi: ${formData.name}
       Tipe: ${formData.type}
-      Stack: ${formData.framework} + ${formData.database}
+      Stack: ${getFrameworksText()} + ${getDatabasesText()}
       
       Workflow Reference:
       ${workflowDoc.substring(0, 1000)}...
@@ -427,7 +534,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       
       # System Prompt for AI Builder
       
-      **Act as a Senior Developer.** Build this app using ${formData.framework} and ${formData.database}.
+      **Act as a Senior Developer.** Build this app using ${getFrameworksText()} and ${getDatabasesText()}.
       
       ## Core Workflow & UI/UX
       [Ringkasan padat dari User Journey, Logic Flow, dan Design System]
@@ -447,7 +554,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       ## Task
       Start by setting up the folder structure and database connection.`;
 
-      const responseText = await fetchFromOpenRouter(prompt);
+      const responseText = await callAI(prompt);
 
       if (!responseText || responseText.length < 50) {
         throw new Error("AI returned empty or insufficient content. Please try again or check your API key.");
@@ -567,8 +674,8 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
         const summary = `
 Project Name: ${formData.name}
 Project Type: ${formData.type}
-Framework: ${formData.framework}
-Database: ${formData.database}
+Framework: ${getFrameworksText()}
+Database: ${getDatabasesText()}
 Description: ${formData.description}
 Generated on: ${new Date().toLocaleString()}
         `.trim();
@@ -718,55 +825,71 @@ ${aiInstructionsDoc}
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Frontend Framework</label>
-                    <Select value={formData.framework} onValueChange={(v) => setFormData({...formData, framework: v || ''})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih Framework" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Next.js (App Router)">Next.js (App Router)</SelectItem>
-                        <SelectItem value="Next.js (Pages Router)">Next.js (Pages Router)</SelectItem>
-                        <SelectItem value="React (Vite)">React (Vite)</SelectItem>
-                        <SelectItem value="Remix">Remix</SelectItem>
-                        <SelectItem value="Astro">Astro</SelectItem>
-                        <SelectItem value="Nuxt (Vue)">Nuxt (Vue)</SelectItem>
-                        <SelectItem value="SvelteKit">SvelteKit</SelectItem>
-                        <SelectItem value="SolidJS / SolidStart">SolidJS / SolidStart</SelectItem>
-                        <SelectItem value="Qwik City">Qwik City</SelectItem>
-                        <SelectItem value="Hono (Frontend)">Hono (Frontend)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                       Frontend Framework <span className="text-[10px] text-slate-500 font-normal">(Bisa pilih lebih dari satu)</span>
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                       {FRAMEWORKS.map(f => (
+                         <div 
+                           key={f} 
+                           className={`flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer ${formData.frameworks.includes(f) ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/5 bg-black/20 hover:border-white/10'}`}
+                           onClick={() => toggleFramework(f)}
+                         >
+                           <Checkbox 
+                             checked={formData.frameworks.includes(f)} 
+                             onCheckedChange={() => toggleFramework(f)}
+                           />
+                           <span className="text-[11px] leading-tight text-slate-300">{f}</span>
+                         </div>
+                       ))}
+                    </div>
+                    <div className="pt-2">
+                      <Input 
+                        placeholder="Manual: Input framework lain (Pisahkan dengan koma)..." 
+                        value={manualFramework}
+                        onChange={(e) => setManualFramework(e.target.value)}
+                        className="h-8 text-xs bg-black/20 border-white/5 focus:border-indigo-500/50"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Database / Backend</label>
-                    <Select value={formData.database} onValueChange={(v) => setFormData({...formData, database: v || ''})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih Database" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Supabase (PostgreSQL)">Supabase (PostgreSQL)</SelectItem>
-                        <SelectItem value="Firebase (Firestore)">Firebase (Firestore)</SelectItem>
-                        <SelectItem value="Neon (Serverless Postgres)">Neon (Serverless Postgres)</SelectItem>
-                        <SelectItem value="Turso (SQLite/LibSQL)">Turso (SQLite/LibSQL)</SelectItem>
-                        <SelectItem value="PostgreSQL (Prisma/Drizzle)">PostgreSQL (Prisma/Drizzle)</SelectItem>
-                        <SelectItem value="PlanetScale (MySQL)">PlanetScale (MySQL)</SelectItem>
-                        <SelectItem value="MongoDB Atlas">MongoDB Atlas</SelectItem>
-                        <SelectItem value="PocketBase">PocketBase</SelectItem>
-                        <SelectItem value="Appwrite">Appwrite</SelectItem>
-                        <SelectItem value="Convex">Convex</SelectItem>
-                        <SelectItem value="Upstash (Redis/Kafka)">Upstash (Redis/Kafka)</SelectItem>
-                        <SelectItem value="Tidak pakai">Tidak pakai</SelectItem>
-                      </SelectContent>
-                    </Select>
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                       Database / Backend <span className="text-[10px] text-slate-500 font-normal">(Bisa pilih lebih dari satu)</span>
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                       {DATABASES.map(d => (
+                         <div 
+                           key={d} 
+                           className={`flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer ${formData.databases.includes(d) ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/5 bg-black/20 hover:border-white/10'}`}
+                           onClick={() => toggleDatabase(d)}
+                         >
+                           <Checkbox 
+                             checked={formData.databases.includes(d)} 
+                             onCheckedChange={() => toggleDatabase(d)}
+                           />
+                           <span className="text-[11px] leading-tight text-slate-300">{d}</span>
+                         </div>
+                       ))}
+                    </div>
+                    <div className="pt-2">
+                      <Input 
+                        placeholder="Manual: Input database lain (Pisahkan dengan koma)..." 
+                        value={manualDatabase}
+                        onChange={(e) => setManualDatabase(e.target.value)}
+                        className="h-8 text-xs bg-black/20 border-white/5 focus:border-indigo-500/50"
+                      />
+                    </div>
                   </div>
                 </div>
+
               </CardContent>
               <CardFooter className="flex justify-end">
                 <Button 
                   onClick={handleGenerateFeatures} 
-                  disabled={loading || !formData.name || !formData.description || !formData.framework || !formData.database}
+                  disabled={loading || !formData.name || !formData.description || (formData.frameworks.length === 0 && !manualFramework) || (formData.databases.length === 0 && !manualDatabase)}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}

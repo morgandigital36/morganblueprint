@@ -84,10 +84,22 @@ export function MyProjects({ onSelectProject }: MyProjectsProps) {
                       </p>
                       
                       <div className="flex items-center justify-between mt-4 border-t border-slate-800 pt-4">
-                        <div className="flex space-x-2">
-                          <span className="px-2 py-1 bg-indigo-950/50 text-indigo-300 text-xs rounded-md border border-indigo-500/30">
-                            {project.formData?.framework || 'Unknown framework'}
-                          </span>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.isArray(project.formData?.frameworks) ? (
+                            project.formData.frameworks.map((f: string) => (
+                              <span key={f} className="px-2 py-0.5 bg-indigo-950/50 text-indigo-300 text-[10px] rounded-md border border-indigo-500/30">
+                                {f}
+                              </span>
+                            ))
+                          ) : project.formData?.framework ? (
+                            <span className="px-2 py-0.5 bg-indigo-950/50 text-indigo-300 text-[10px] rounded-md border border-indigo-500/30">
+                              {project.formData.framework}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-slate-900 text-slate-500 text-[10px] rounded-md border border-slate-800">
+                              No framework
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button 
