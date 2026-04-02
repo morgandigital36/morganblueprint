@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Copy, CheckCircle2, ArrowRight, Sparkles, Download, FileText, History, Trash2, Zap, Moon, Sun, Layers, Plus } from 'lucide-react';
+import { Loader2, Copy, CheckCircle2, ArrowRight, Sparkles, Download, FileText, History, Trash2, Zap, Moon, Sun, Layers, Plus, MessageSquare, Send, X, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
 import JSZip from 'jszip';
@@ -245,6 +245,24 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
   const [uiUxDoc, setUiUxDoc] = useState('');
   const [coreFeaturesDoc, setCoreFeaturesDoc] = useState('');
   const [aiInstructionsDoc, setAiInstructionsDoc] = useState('');
+  
+  // Chat / Ask AI State
+  const [chatMessages, setChatMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [pendingRevision, setPendingRevision] = useState<string | null>(null);
+
+  const getChatContext = () => {
+    switch(step) {
+      case 2: return { name: "Suggested Features", content: JSON.stringify(suggestedFeatures), setter: setSuggestedFeatures, format: 'JSON' };
+      case 3: return { name: "Workflow", content: workflowDoc, setter: setWorkflowDoc, format: 'Markdown' };
+      case 4: return { name: "UI/UX Design", content: uiUxDoc, setter: setUiUxDoc, format: 'Markdown' };
+      case 5: return { name: "Core Features", content: coreFeaturesDoc, setter: setCoreFeaturesDoc, format: 'Markdown' };
+      case 6: return { name: "AI Instructions", content: aiInstructionsDoc, setter: setAiInstructionsDoc, format: 'Markdown' };
+      default: return null;
+    }
+  };
 
   // Load history and dark mode from LocalStorage
   useEffect(() => {
@@ -269,6 +287,13 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+
+  // Reset chat when step changes
+  useEffect(() => {
+    setChatMessages([]);
+    setPendingRevision(null);
+    setChatInput('');
+  }, [step]);
 
   const saveToHistory = (overrides?: Partial<BlueprintHistory>) => {
     const newEntry: BlueprintHistory = {
@@ -582,11 +607,84 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       saveToHistory({
         aiInstructionsDoc: responseText || ''
       });
-    } catch (error: any) {
-      console.error('Error generating instructions:', error);
-      alert(`Gagal membuat AI Instructions: ${error.message || 'Coba periksa koneksi atau ganti API key.'}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAskAI = async () => {
+    if (!chatInput.trim() || isChatLoading) return;
+    
+    const context = getChatContext();
+    if (!context) return;
+
+    const userMessage = chatInput.trim();
+    const newMessages = [...chatMessages, { role: 'user' as const, content: userMessage }];
+    setChatMessages(newMessages);
+    setChatInput('');
+    setIsChatLoading(true);
+    setPendingRevision(null);
+
+    try {
+      const systemPrompt = `You are a professional software architect. Act as an expert advisor.
+      Current Document (${context.name}):
+      ---
+      ${context.content}
+      ---
+      
+      User Request: "${userMessage}"
+      
+      INSTRUCTION:
+      1. Respond conversationally to the user about their request.
+      2. If you are suggesting a revision to the document, provide the ENTIRE revised version at the end of your response, wrapped exactly inside <REVISION_DOC_START> and <REVISION_DOC_END> tags.
+      3. The revised content must maintain the exact same format (${context.format}).
+      4. If it's step 2 (Suggested Features), the revision MUST be valid JSON array.
+      5. If it's step 3-6, the revision MUST be Markdown.`;
+
+      const response = await callAI(systemPrompt);
+      
+      // Parse for revision
+      let cleanResponse = response;
+      const startTag = '<REVISION_DOC_START>';
+      const endTag = '<REVISION_DOC_END>';
+      
+      if (response.includes(startTag) && response.includes(endTag)) {
+        const startIndex = response.indexOf(startTag) + startTag.length;
+        const endIndex = response.indexOf(endTag);
+        const revision = response.substring(startIndex, endIndex).trim();
+        setPendingRevision(revision);
+        cleanResponse = response.replace(startTag, '').replace(endTag, '').replace(revision, '').trim();
+        if (cleanResponse === '') cleanResponse = "Saya telah menyiapkan revisi dokumen berdasarkan permintaan Anda. Klik tombol 'Terapkan Revisi' di bawah untuk memperbarui dokumen.";
+      }
+
+      setChatMessages([...newMessages, { role: 'assistant', content: cleanResponse }]);
+    } catch (error) {
+       console.error('Chat error:', error);
+       setChatMessages([...newMessages, { role: 'assistant', content: 'Maaf, terjadi kesalahan saat menghubungi AI. Periksa koneksi Anda.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const applyRevision = () => {
+    if (!pendingRevision) return;
+    const context = getChatContext();
+    if (!context) return;
+
+    try {
+      if (context.format === 'JSON') {
+        let raw = pendingRevision.trim();
+        if (raw.startsWith('```json')) raw = raw.replace(/^```json/g, '').replace(/```$/g, '').trim();
+        if (raw.startsWith('```')) raw = raw.replace(/^```/g, '').replace(/```$/g, '').trim();
+        context.setter(JSON.parse(raw));
+      } else {
+        context.setter(pendingRevision);
+      }
+      setPendingRevision(null);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Revisi telah diterapkan!' }]);
+    } catch (e) {
+      console.error('Error applying revision:', e);
+      alert('Gagal menerapkan revisi. Format data tidak valid.');
     }
   };
 
@@ -935,8 +1033,20 @@ ${aiInstructionsDoc}
           >
             <Card className="border-indigo-500/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black/40 backdrop-blur-xl">
               <CardHeader>
-                <CardTitle>2. Interactive Feature Discovery</CardTitle>
-                <CardDescription>AI telah melakukan brainstorming fitur untuk aplikasi Anda. Pilih fitur yang ingin disertakan.</CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>2. Interactive Feature Discovery</CardTitle>
+                    <CardDescription>AI telah melakukan brainstorming fitur. Pilih yang Anda inginkan.</CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsChatOpen(true)}
+                    className="border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/20 hover:text-white"
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" /> Ask AI
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[400px] pr-4">
@@ -1033,6 +1143,14 @@ ${aiInstructionsDoc}
                     <CardDescription>Review alur kerja aplikasi yang dihasilkan AI.</CardDescription>
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setIsChatOpen(true)}
+                      className="border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/20 hover:text-white"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" /> Ask AI
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => exportToDoc('workflow-content', 'Workflow')}>
                       <FileText className="h-4 w-4 mr-2" /> DOC
                     </Button>
@@ -1080,6 +1198,14 @@ ${aiInstructionsDoc}
                     <CardDescription>Design system dan arsitektur komponen UI.</CardDescription>
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setIsChatOpen(true)}
+                      className="border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/20 hover:text-white"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" /> Ask AI
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => exportToDoc('uiux-content', 'UIUX_Design')}>
                       <FileText className="h-4 w-4 mr-2" /> DOC
                     </Button>
@@ -1127,6 +1253,14 @@ ${aiInstructionsDoc}
                     <CardDescription>Spesifikasi teknis, skema database, dan aturan keamanan.</CardDescription>
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setIsChatOpen(true)}
+                      className="border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/20 hover:text-white"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" /> Ask AI
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => exportToDoc('core-content', 'Core_Features')}>
                       <FileText className="h-4 w-4 mr-2" /> DOC
                     </Button>
@@ -1167,13 +1301,25 @@ ${aiInstructionsDoc}
             exit={{ opacity: 0, y: -20 }}
           >
             <Card className="border-indigo-500/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black/40 backdrop-blur-xl overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
-                <CardTitle className="text-2xl mb-2">Blueprint Ready!</CardTitle>
-                <CardDescription className="text-blue-100">
-                  Dokumen Anda siap digunakan. Salin &quot;AI Instructions&quot; dan paste ke AI Builder favorit Anda (Trae, Lovable, Cursor, dll).
-                </CardDescription>
-              </div>
-              <CardContent className="p-6">
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white flex-1 w-full rounded-tl-2xl">
+                        <CardTitle className="text-2xl mb-2">Blueprint Ready!</CardTitle>
+                        <CardDescription className="text-blue-100">
+                        Dokumen Anda siap digunakan. Salin &quot;AI Instructions&quot; dan paste ke AI Builder favorit Anda.
+                        </CardDescription>
+                    </div>
+                    <div className="pr-6 pt-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setIsChatOpen(true)}
+                            className="border-white/20 text-white hover:bg-white/10"
+                        >
+                            <MessageSquare className="w-4 h-4 mr-2" /> Ask AI to Revise
+                        </Button>
+                    </div>
+                 </div>
+               <CardContent className="p-6">
                 <Tabs defaultValue="instructions" className="w-full">
                   <TabsList className="grid w-full grid-cols-4 mb-6 bg-black/40 border border-slate-800 p-1 rounded-xl">
                     <TabsTrigger value="instructions" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_15px_rgba(99,102,241,0.4)]">AI Instructions</TabsTrigger>
@@ -1271,6 +1417,126 @@ ${aiInstructionsDoc}
         )}
       </AnimatePresence>
       </div>
+
+      {/* AI Chat Side Panel */}
+      <AnimatePresence>
+        {isChatOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsChatOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-[#0a0a1a] border-l border-indigo-500/20 z-50 flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+            >
+              <div className="p-4 border-b border-indigo-500/20 flex justify-between items-center bg-indigo-600/10">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-indigo-600 rounded-lg shadow-[0_0_15px_rgba(79,70,229,0.5)]">
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white">Ask AI (Assistant)</h3>
+                    <p className="text-[10px] text-indigo-300">Revisi dokumen secara instan</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4">
+                  {chatMessages.length === 0 && (
+                    <div className="text-center py-10 space-y-3">
+                      <div className="w-12 h-12 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto text-indigo-400">
+                        <MessageSquare className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm text-slate-400">Ada yang ingin diubah dalam dokumen ini? Silakan curhat dengan AI di sini.</p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                         {['Tambahkan fitur...', 'Ubah alur...', 'Lebih profesional...'].map(suggestion => (
+                           <button 
+                            key={suggestion}
+                            onClick={() => setChatInput(suggestion)}
+                            className="px-3 py-1 text-[10px] bg-black/40 border border-indigo-500/20 rounded-full text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+                           >
+                             {suggestion}
+                           </button>
+                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                        msg.role === 'user' 
+                          ? 'bg-indigo-600 text-white rounded-tr-none shadow-[0_0_15px_rgba(79,70,229,0.3)]' 
+                          : 'bg-black/40 border border-indigo-500/20 text-slate-200 rounded-tl-none'
+                      }`}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isChatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-black/40 border border-indigo-500/20 p-3 rounded-2xl rounded-tl-none">
+                        <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                      </div>
+                    </div>
+                  )}
+
+                  {pendingRevision && !isChatLoading && (
+                    <div className="p-4 bg-indigo-600/10 border border-indigo-500/30 rounded-xl space-y-3 shadow-[0_0_20px_rgba(79,70,229,0.1)]">
+                      <div className="flex items-start gap-2">
+                        <RefreshCw className="w-4 h-4 text-indigo-400 mt-1" />
+                        <div>
+                          <p className="text-xs font-bold text-white">Revisi Siap Diterapkan</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Klik tombol di bawah untuk memperbarui dokumen secara permanen.</p>
+                        </div>
+                      </div>
+                      <Button onClick={applyRevision} className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-all">
+                        Terapkan Revisi
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <div className="p-4 border-t border-indigo-500/20 bg-black/40">
+                <div className="relative">
+                  <Input 
+                    placeholder="Ketik instruksi revisi..." 
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
+                    className="pr-10 bg-black/20 border-indigo-500/30 text-white placeholder:text-slate-600 focus-visible:ring-indigo-500 focus-visible:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleAskAI}
+                    disabled={!chatInput.trim() || isChatLoading}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-white hover:bg-indigo-600/20"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-[10px] text-center text-slate-500 mt-3 italic">
+                  AI akan memahami konteks dokumen yang sedang Anda buka.
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
