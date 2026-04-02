@@ -26,7 +26,11 @@ function loadHistory(): BlueprintHistory[] {
   }
 }
 
-export function MyProjects() {
+interface MyProjectsProps {
+  onSelectProject?: (project: BlueprintHistory) => void;
+}
+
+export function MyProjects({ onSelectProject }: MyProjectsProps) {
   const [history, setHistory] = useState<BlueprintHistory[]>(loadHistory);
 
   const handleDelete = (id: string) => {
@@ -94,8 +98,13 @@ export function MyProjects() {
                             >
                               <TrashIcon className="w-4 h-4" />
                             </Button>
-                            {/* Note: The ability to actually OPEN this project again in AIBuilder requires passing state. For now just visual. */}
-                            <Button variant="outline" className="text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/20 hover:text-white gap-2">
+                            <Button 
+                              variant="outline" 
+                              className="text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/20 hover:text-white gap-2"
+                              onClick={() => {
+                                if (onSelectProject) onSelectProject(project);
+                              }}
+                            >
                               Load
                               <ArrowRightIcon className="w-4 h-4" />
                             </Button>

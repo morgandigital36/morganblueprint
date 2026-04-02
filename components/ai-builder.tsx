@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Copy, CheckCircle2, ArrowRight, Sparkles, Download, FileText, History, Trash2, Zap, Moon, Sun, Layers } from 'lucide-react';
+import { Loader2, Copy, CheckCircle2, ArrowRight, Sparkles, Download, FileText, History, Trash2, Zap, Moon, Sun, Layers, Plus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -108,13 +108,17 @@ interface FeatureCategory {
   features: Feature[];
 }
 
-export default function AIBuilder() {
+export default function AIBuilder({ projectToLoad, setProjectToLoad }: { projectToLoad?: any, setProjectToLoad?: (p: any) => void } = {}) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<BlueprintHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
+
+  // Custom Feature Data
+  const [customFeatureName, setCustomFeatureName] = useState('');
+  const [customFeatureDesc, setCustomFeatureDesc] = useState('');
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -180,8 +184,36 @@ export default function AIBuilder() {
     setShowHistory(false);
   };
 
+  useEffect(() => {
+    if (projectToLoad) {
+      loadFromHistory(projectToLoad);
+      if (setProjectToLoad) setProjectToLoad(null);
+    }
+  }, [projectToLoad]);
+
   const deleteHistoryEntry = (id: string) => {
     setHistory(prev => prev.filter(e => e.id !== id));
+  };
+
+  const handleAddCustomFeature = () => {
+    if (!customFeatureName.trim()) return;
+    const newFeature = {
+      id: `custom-${Math.random().toString(36).substring(2, 9)}`,
+      name: customFeatureName,
+      description: customFeatureDesc || 'Fitur tambahan manual'
+    };
+    
+    setSuggestedFeatures(prev => {
+      const hasCustomCategory = prev.some(c => c.category === 'Custom Features');
+      if (hasCustomCategory) {
+        return prev.map(c => c.category === 'Custom Features' ? { ...c, features: [...c.features, newFeature] } : c);
+      } else {
+        return [...prev, { category: 'Custom Features', features: [newFeature] }];
+      }
+    });
+    setSelectedFeatures(prev => [...prev, newFeature.id]);
+    setCustomFeatureName('');
+    setCustomFeatureDesc('');
   };
 
   const applyTemplate = (template: typeof QUICK_TEMPLATES[0]) => {
@@ -221,6 +253,7 @@ export default function AIBuilder() {
       setStep(2);
     } catch (error) {
       console.error('Error generating features:', error);
+      alert('Gagal menghubungi AI. Coba periksa koneksi atau ganti API key.');
     } finally {
       setLoading(false);
     }
@@ -258,6 +291,7 @@ export default function AIBuilder() {
       setStep(3);
     } catch (error) {
       console.error('Error generating workflow:', error);
+      alert('Gagal menghubungi AI. Coba periksa koneksi atau ganti API key.');
     } finally {
       setLoading(false);
     }
@@ -292,6 +326,7 @@ export default function AIBuilder() {
       setStep(4);
     } catch (error) {
       console.error('Error generating UI/UX:', error);
+      alert('Gagal menghubungi AI. Coba periksa koneksi atau ganti API key.');
     } finally {
       setLoading(false);
     }
@@ -329,6 +364,7 @@ export default function AIBuilder() {
       setStep(5);
     } catch (error) {
       console.error('Error generating core features:', error);
+      alert('Gagal menghubungi AI. Coba periksa koneksi atau ganti API key.');
     } finally {
       setLoading(false);
     }
@@ -383,6 +419,7 @@ export default function AIBuilder() {
       saveToHistory();
     } catch (error) {
       console.error('Error generating instructions:', error);
+      alert('Gagal menghubungi AI. Coba periksa koneksi atau ganti API key.');
     } finally {
       setLoading(false);
     }
@@ -415,16 +452,34 @@ export default function AIBuilder() {
     if (!element) return;
     try {
       const html2pdf = (await import('html2pdf.js')).default;
+      
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.style.padding = '20px';
+      clone.style.width = '800px'; 
+      clone.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff';
+      clone.style.color = document.documentElement.classList.contains('dark') ? '#f8fafc' : '#000000';
+      
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '0';
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
       const opt = {
         margin: 0.5,
         filename: `${filename}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: { scale: 2, useCORS: true, windowWidth: 800 },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
       } as any;
-      html2pdf().set(opt).from(element).save();
+      
+      await html2pdf().set(opt).from(clone).save();
+      
+      document.body.removeChild(wrapper);
     } catch (error) {
       console.error('Error exporting PDF:', error);
+      alert('Gagal mengekspor dokumen ke PDF.');
     }
   };
 
@@ -643,6 +698,33 @@ ${aiInstructionsDoc}
                         </div>
                       </div>
                     ))}
+
+                    <div className="mt-8 pt-6 border-t border-indigo-500/20">
+                      <h4 className="text-sm font-medium text-white mb-3">Tambah Fitur Manual</h4>
+                      <div className="flex gap-2 items-start">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1">
+                          <Input 
+                            placeholder="Nama Fitur" 
+                            value={customFeatureName}
+                            onChange={e => setCustomFeatureName(e.target.value)}
+                            className="bg-black/20 border-indigo-500/20 text-white"
+                          />
+                          <Input 
+                            placeholder="Deskripsi Singkat" 
+                            value={customFeatureDesc}
+                            onChange={e => setCustomFeatureDesc(e.target.value)}
+                            className="bg-black/20 border-indigo-500/20 text-white"
+                          />
+                        </div>
+                        <Button 
+                          onClick={handleAddCustomFeature}
+                          disabled={!customFeatureName.trim()}
+                          className="bg-indigo-600 hover:bg-indigo-700 shrink-0"
+                        >
+                          <Plus className="w-4 h-4 mr-1" /> Add
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </ScrollArea>
               </CardContent>

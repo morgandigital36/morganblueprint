@@ -9,6 +9,7 @@ import { AnimatePresence } from 'motion/react';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('new-blueprint');
+  const [projectToLoad, setProjectToLoad] = useState<any>(null);
 
   return (
     <div className="flex h-screen w-full bg-[#050510] text-slate-200 overflow-hidden font-sans">
@@ -22,8 +23,8 @@ export default function Dashboard() {
         {/* Existing Application Feature */}
         <div className="relative z-10 w-full h-full">
            <AnimatePresence mode="wait">
-             {activeTab === 'new-blueprint' && <AIBuilder key="builder" />}
-             {activeTab === 'projects' && <MyProjects key="projects" />}
+             {activeTab === 'new-blueprint' && <AIBuilder key="builder" projectToLoad={projectToLoad} setProjectToLoad={setProjectToLoad} />}
+             {activeTab === 'projects' && <MyProjects key="projects" onSelectProject={(project) => { setProjectToLoad(project); setActiveTab('new-blueprint'); }} />}
              {activeTab === 'settings' && <Settings key="settings" />}
            </AnimatePresence>
         </div>
