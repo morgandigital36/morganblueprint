@@ -636,9 +636,15 @@ ${aiInstructionsDoc}
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Next.js (App Router)">Next.js (App Router)</SelectItem>
+                        <SelectItem value="Next.js (Pages Router)">Next.js (Pages Router)</SelectItem>
                         <SelectItem value="React (Vite)">React (Vite)</SelectItem>
-                        <SelectItem value="Vue / Nuxt">Vue / Nuxt</SelectItem>
+                        <SelectItem value="Remix">Remix</SelectItem>
+                        <SelectItem value="Astro">Astro</SelectItem>
+                        <SelectItem value="Nuxt (Vue)">Nuxt (Vue)</SelectItem>
                         <SelectItem value="SvelteKit">SvelteKit</SelectItem>
+                        <SelectItem value="SolidJS / SolidStart">SolidJS / SolidStart</SelectItem>
+                        <SelectItem value="Qwik City">Qwik City</SelectItem>
+                        <SelectItem value="Hono (Frontend)">Hono (Frontend)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -651,8 +657,15 @@ ${aiInstructionsDoc}
                       <SelectContent>
                         <SelectItem value="Supabase (PostgreSQL)">Supabase (PostgreSQL)</SelectItem>
                         <SelectItem value="Firebase (Firestore)">Firebase (Firestore)</SelectItem>
-                        <SelectItem value="MongoDB">MongoDB</SelectItem>
-                        <SelectItem value="PostgreSQL (Prisma)">PostgreSQL (Prisma)</SelectItem>
+                        <SelectItem value="Neon (Serverless Postgres)">Neon (Serverless Postgres)</SelectItem>
+                        <SelectItem value="Turso (SQLite/LibSQL)">Turso (SQLite/LibSQL)</SelectItem>
+                        <SelectItem value="PostgreSQL (Prisma/Drizzle)">PostgreSQL (Prisma/Drizzle)</SelectItem>
+                        <SelectItem value="PlanetScale (MySQL)">PlanetScale (MySQL)</SelectItem>
+                        <SelectItem value="MongoDB Atlas">MongoDB Atlas</SelectItem>
+                        <SelectItem value="PocketBase">PocketBase</SelectItem>
+                        <SelectItem value="Appwrite">Appwrite</SelectItem>
+                        <SelectItem value="Convex">Convex</SelectItem>
+                        <SelectItem value="Upstash (Redis/Kafka)">Upstash (Redis/Kafka)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
