@@ -609,11 +609,18 @@ ${aiInstructionsDoc}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Jenis Aplikasi</label>
-                    <Input 
-                      placeholder="e.g. SaaS, E-commerce, Social Network" 
-                      value={formData.type}
-                      onChange={(e) => setFormData({...formData, type: e.target.value})}
-                    />
+                    <Select value={formData.type} onValueChange={(v) => setFormData({...formData, type: v || ''})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih Jenis" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Web App">Web App</SelectItem>
+                        <SelectItem value="APK (Expo)">APK (Expo)</SelectItem>
+                        <SelectItem value="APK (Android Studio)">APK (Android Studio)</SelectItem>
+                        <SelectItem value="Website">Website</SelectItem>
+                        <SelectItem value="Landing Page">Landing Page</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 
@@ -666,6 +673,7 @@ ${aiInstructionsDoc}
                         <SelectItem value="Appwrite">Appwrite</SelectItem>
                         <SelectItem value="Convex">Convex</SelectItem>
                         <SelectItem value="Upstash (Redis/Kafka)">Upstash (Redis/Kafka)</SelectItem>
+                        <SelectItem value="Tidak pakai">Tidak pakai</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
