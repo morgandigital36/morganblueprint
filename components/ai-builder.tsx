@@ -331,6 +331,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       ...prev,
       frameworks: prev.frameworks.includes(framework) ? [] : [framework]
     }));
+    setManualFramework('');
   };
 
   const toggleDatabase = (database: string) => {
@@ -338,6 +339,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       ...prev,
       databases: prev.databases.includes(database) ? [] : [database]
     }));
+    setManualDatabase('');
   };
 
   const getFrameworksText = () => {
@@ -775,10 +777,10 @@ ${aiInstructionsDoc}
                         key={t.name} 
                         variant="outline" 
                         size="sm" 
-                        className="justify-start h-auto py-2 px-3 text-left flex-col items-start gap-1 border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:shadow-[0_0_15px_rgba(99,102,241,0.2)] bg-black/20"
+                        className="justify-start h-auto py-2 px-3 text-left flex-col items-start gap-1 border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-all duration-300 bg-black/20"
                         onClick={() => applyTemplate(t)}
                       >
-                        <span className="font-semibold text-xs">{t.name}</span>
+                        <span className="font-semibold text-xs transition-colors group-hover:text-indigo-300">{t.name}</span>
                         <span className="text-[10px] text-slate-500 line-clamp-1">{t.type}</span>
                       </Button>
                     ))}
@@ -843,9 +845,12 @@ ${aiInstructionsDoc}
                     </div>
                     <div className="pt-2">
                       <Input 
-                        placeholder="Manual: Input framework lain (Pisahkan dengan koma)..." 
+                        placeholder="Manual: Input framework lain..." 
                         value={manualFramework}
-                        onChange={(e) => setManualFramework(e.target.value)}
+                        onChange={(e) => {
+                          setManualFramework(e.target.value);
+                          if (e.target.value) setFormData(prev => ({...prev, frameworks: []}));
+                        }}
                         className="h-8 text-xs bg-black/20 border-white/5 focus:border-indigo-500/50"
                       />
                     </div>
@@ -872,9 +877,12 @@ ${aiInstructionsDoc}
                     </div>
                     <div className="pt-2">
                       <Input 
-                        placeholder="Manual: Input database lain (Pisahkan dengan koma)..." 
+                        placeholder="Manual: Input database lain..." 
                         value={manualDatabase}
-                        onChange={(e) => setManualDatabase(e.target.value)}
+                        onChange={(e) => {
+                          setManualDatabase(e.target.value);
+                          if (e.target.value) setFormData(prev => ({...prev, databases: []}));
+                        }}
                         className="h-8 text-xs bg-black/20 border-white/5 focus:border-indigo-500/50"
                       />
                     </div>
@@ -1146,11 +1154,11 @@ ${aiInstructionsDoc}
               </div>
               <CardContent className="p-6">
                 <Tabs defaultValue="instructions" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-6">
-                    <TabsTrigger value="instructions">AI Instructions</TabsTrigger>
-                    <TabsTrigger value="workflow">Workflow</TabsTrigger>
-                    <TabsTrigger value="uiux">UI/UX Design</TabsTrigger>
-                    <TabsTrigger value="core">Core Features</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-4 mb-6 bg-black/40 border border-slate-800 p-1 rounded-xl">
+                    <TabsTrigger value="instructions" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_15px_rgba(99,102,241,0.4)]">AI Instructions</TabsTrigger>
+                    <TabsTrigger value="workflow" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_15px_rgba(99,102,241,0.4)]">Workflow</TabsTrigger>
+                    <TabsTrigger value="uiux" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_15px_rgba(99,102,241,0.4)]">UI/UX Design</TabsTrigger>
+                    <TabsTrigger value="core" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_15px_rgba(99,102,241,0.4)]">Core Features</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="instructions" className="space-y-4">
