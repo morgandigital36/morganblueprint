@@ -159,6 +159,18 @@ const Mermaid = ({ chart }: { chart: string }) => {
          cleanedChart = 'stateDiagram-v2\n' + cleanedChart;
       }
 
+      // 4. Fix labels with parentheses inside brackets: A[Text (Info)] -> A["Text (Info)"]
+      cleanedChart = cleanedChart.replace(/\[([^"\]]*[\(\)][^"\]]*)\]/g, '["$1"]');
+
+      // 5. Fix edge labels with quotes that break parsing: -- "Click Me" --> -> -- Click Me -->
+      cleanedChart = cleanedChart.replace(/--\s*"([^"]+)"\s*-->/g, '-- $1 -->');
+      
+      // 6. Fix nested or stray quotes in text labels
+      cleanedChart = cleanedChart.replace(/(\[[^\]]*)"([^\]]*\])/g, '$1 $2');
+
+      // 7. Fix [id] inside (labels) which happens in path descriptions
+      cleanedChart = cleanedChart.replace(/\(([^" \)]*\[[^\]]+\][^" \)]*)\)/g, '("$1")');
+
       import('mermaid').then((mermaidModule) => {
         const mermaid = mermaidModule.default;
         mermaid.initialize({ 
@@ -421,7 +433,10 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       
       PENTING: Buat penjelasan teks as long as possible! Selain penjelasan teks, Anda WAJIB menyertakan diagram menggunakan sintaks \`\`\`mermaid ... \`\`\` (misalnya "graph TD" untuk sitemap, atau "flowchart TD", "stateDiagram", "sequenceDiagram") sebagai pelengkap visualisasi. 
       
-      ATURAN KRITIS: JANGAN PERNAH menggunakan kata "sitemap" sebagai keyword pembuka diagram mermaid. Gunakan "graph TD" atau "flowchart TD" sebagai gantinya.
+      ATURAN KRITIS: 
+      1. JANGAN PERNAH menggunakan kata "sitemap" sebagai keyword pembuka diagram mermaid. Gunakan "graph TD" atau "flowchart TD" sebagai gantinya.
+      2. Jangan gunakan tanda kutip di dalam label panah (edge label). Contoh: -- Klik Simpan --> (Benar), -- Klik "Simpan" --> (SALA).
+      3. Jika teks di dalam kotak mengandung tanda kurung atau simbol, bungkus dengan tanda kutip dua. Contoh: A["User (Editor) Login"].
       
       Gunakan bahasa yang profesional dan komprehensif.`;
 
@@ -456,7 +471,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       - Jika aplikasi luxury/travel: Gunakan Recipe 4 (Dark Luxury).
       - Jika aplikasi modern SaaS: Gunakan Recipe 11 (SaaS Split Layout).
       
-      PENTING: Selain penjelasan teks yang panjang lebar dan rapi, TETAP sertakan diagram struktur komponen menggunakan sintaks \`\`\`mermaid ... \`\`\`. Visualisasi wajib digabung dengan narasi berbobot tinggi.
+      PENTING: Selain penjelasan teks yang panjang lebar dan rapi, TETAP sertakan diagram struktur komponen menggunakan sintaks \`\`\`mermaid ... \`\`\`. Visualisasi wajib digabung dengan narasi berbobot tinggi. Gunakan sintaks Mermaid yang aman (pakai tanda kutip untuk label node yang kompleks, hindari tanda kutip di label panah).
       
       Gunakan bahasa teknis yang rapi dan deskriptif.`;
 
@@ -494,7 +509,7 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       3. Security Protocol: BERIKAN teks deskripsi yang panjang mengenai aturan Auth, Middleware, Encryption, dan konsep RLS/Security Rules.
       4. Error Handling Strategy: JELASKAN strategi fallback dan validasinya secara komprehensif.
       
-      PENTING: Selain penjelasan naskah tebal dan rapi, TETAP sertakan diagram Entity-Relationship (ERD) menggunakan sintaks \`\`\`mermaid erDiagram ... \`\`\` sebagai ilustrasi pendukung.
+      PENTING: Selain penjelasan naskah tebal dan rapi, TETAP sertakan diagram Entity-Relationship (ERD) menggunakan sintaks \`\`\`mermaid erDiagram ... \`\`\` sebagai ilustrasi pendukung. Pastikan sintaks erDiagram benar dan hindari karakter spesial yang tidak didukung dalam nama tabel/field.
       
       Gunakan bahasa teknis yang rapi penuh elaborasi.`;
 
