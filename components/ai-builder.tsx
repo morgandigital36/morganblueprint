@@ -870,12 +870,12 @@ ${aiInstructionsDoc}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px] w-full rounded-md border border-indigo-500/20 p-4 bg-black/20">
-                  <div id="workflow-content" className="markdown-body prose prose-slate prose-sm max-w-none p-6 bg-white text-slate-900 rounded-xl">
+              <CardContent className="pt-0">
+                <div className="w-full">
+                  <div id="workflow-content" className="markdown-body prose prose-slate prose-invert prose-sm max-w-none text-slate-200">
                     <ReactMarkdown components={markdownComponents}>{workflowDoc}</ReactMarkdown>
                   </div>
-                </ScrollArea>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
@@ -917,12 +917,12 @@ ${aiInstructionsDoc}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px] w-full rounded-md border border-indigo-500/20 p-4 bg-black/20">
-                  <div id="uiux-content" className="markdown-body prose prose-slate prose-sm max-w-none p-6 bg-white text-slate-900 rounded-xl">
+              <CardContent className="pt-0">
+                <div className="w-full">
+                  <div id="uiux-content" className="markdown-body prose prose-slate prose-invert prose-sm max-w-none text-slate-200">
                     <ReactMarkdown components={markdownComponents}>{uiUxDoc}</ReactMarkdown>
                   </div>
-                </ScrollArea>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
@@ -964,12 +964,12 @@ ${aiInstructionsDoc}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px] w-full rounded-md border border-indigo-500/20 p-4 bg-black/20">
-                  <div id="core-content" className="markdown-body prose prose-slate prose-sm max-w-none p-6 bg-white text-slate-900 rounded-xl">
+              <CardContent className="pt-0">
+                <div className="w-full">
+                  <div id="core-content" className="markdown-body prose prose-slate prose-invert prose-sm max-w-none text-slate-200">
                     <ReactMarkdown components={markdownComponents}>{coreFeaturesDoc}</ReactMarkdown>
                   </div>
-                </ScrollArea>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep(4)}>Back</Button>
@@ -1026,11 +1026,11 @@ ${aiInstructionsDoc}
                         <Layers className="h-4 w-4" /> Copy All Docs
                       </Button>
                     </div>
-                    <ScrollArea className="h-[400px] w-full rounded-md border border-indigo-500/20 p-6 bg-black/20 text-slate-50">
-                      <div id="instructions-content" className="markdown-body prose prose-slate prose-sm max-w-none p-6 bg-white text-slate-900 rounded-xl">
+                    <div className="w-full py-4">
+                      <div id="instructions-content" className="markdown-body prose prose-slate prose-invert prose-sm max-w-none text-slate-200">
                         <ReactMarkdown components={markdownComponents}>{aiInstructionsDoc}</ReactMarkdown>
                       </div>
-                    </ScrollArea>
+                    </div>
                   </TabsContent>
                   
                   <TabsContent value="workflow" className="space-y-4">
@@ -1042,11 +1042,11 @@ ${aiInstructionsDoc}
                         <Download className="h-4 w-4 mr-2" /> PDF
                       </Button>
                     </div>
-                    <ScrollArea className="h-[400px] w-full rounded-md border border-indigo-500/20 p-6 bg-black/20">
-                      <div id="workflow-content-final" className="markdown-body prose prose-slate prose-sm max-w-none p-6 bg-white text-slate-900 rounded-xl">
+                    <div className="w-full py-4">
+                      <div id="workflow-content-final" className="markdown-body prose prose-slate prose-invert prose-sm max-w-none text-slate-200">
                         <ReactMarkdown components={markdownComponents}>{workflowDoc}</ReactMarkdown>
                       </div>
-                    </ScrollArea>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="uiux" className="space-y-4">
@@ -1058,11 +1058,11 @@ ${aiInstructionsDoc}
                         <Download className="h-4 w-4 mr-2" /> PDF
                       </Button>
                     </div>
-                    <ScrollArea className="h-[400px] w-full rounded-md border border-indigo-500/20 p-6 bg-black/20">
-                      <div id="uiux-content-final" className="markdown-body prose prose-slate prose-sm max-w-none p-6 bg-white text-slate-900 rounded-xl">
+                    <div className="w-full py-4">
+                      <div id="uiux-content-final" className="markdown-body prose prose-slate prose-invert prose-sm max-w-none text-slate-200">
                         <ReactMarkdown components={markdownComponents}>{uiUxDoc}</ReactMarkdown>
                       </div>
-                    </ScrollArea>
+                    </div>
                   </TabsContent>
                   
                   <TabsContent value="core" className="space-y-4">
@@ -1074,11 +1074,11 @@ ${aiInstructionsDoc}
                         <Download className="h-4 w-4 mr-2" /> PDF
                       </Button>
                     </div>
-                    <ScrollArea className="h-[400px] w-full rounded-md border border-indigo-500/20 p-6 bg-black/20">
-                      <div id="core-content-final" className="markdown-body prose prose-slate prose-sm max-w-none p-6 bg-white text-slate-900 rounded-xl">
+                    <div className="w-full py-4">
+                      <div id="core-content-final" className="markdown-body prose prose-slate prose-invert prose-sm max-w-none text-slate-200">
                         <ReactMarkdown components={markdownComponents}>{coreFeaturesDoc}</ReactMarkdown>
                       </div>
-                    </ScrollArea>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </CardContent>
