@@ -449,6 +449,12 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
 
       const responseText = await fetchFromOpenRouter(prompt);
 
+      if (!responseText || responseText.length < 50) {
+        throw new Error("AI returned empty or insufficient content. Please try again or check your API key.");
+      }
+
+      console.log('AI Instructions generated successfully. Length:', responseText.length);
+
       setAiInstructionsDoc(responseText || '');
       setStep(6);
       
@@ -456,9 +462,9 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       saveToHistory({
         aiInstructionsDoc: responseText || ''
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating instructions:', error);
-      alert('Gagal menghubungi AI. Coba periksa koneksi atau ganti API key.');
+      alert(`Gagal membuat AI Instructions: ${error.message || 'Coba periksa koneksi atau ganti API key.'}`);
     } finally {
       setLoading(false);
     }
@@ -503,13 +509,31 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       wrapper.style.left = '-9999px';
       wrapper.style.top = '0';
       wrapper.appendChild(clone);
+      
+      // Fix for Tailwind CSS v4 "oklch" error in html2canvas
+      // We'll add a style tag to the wrapper to force standard colors for the export
+      const styleTag = document.createElement('style');
+      styleTag.innerHTML = `
+        .markdown-body { background: transparent !important; color: inherit !important; }
+        .markdown-body * { border-color: #cbd5e1 !important; }
+        /* Override Tailwind v4 oklch colors with safe fallback for html2canvas */
+        :root { --background: white; --foreground: black; }
+        * { color-scheme: light !important; }
+      `;
+      wrapper.appendChild(styleTag);
+      
       document.body.appendChild(wrapper);
 
       const opt = {
         margin: 0.5,
         filename: `${filename}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, windowWidth: 800 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          windowWidth: 800,
+          // ignoreElements: (el: any) => el.tagName === 'IFRAME'
+        },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
       } as any;
       
