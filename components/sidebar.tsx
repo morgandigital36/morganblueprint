@@ -77,19 +77,29 @@ export function Sidebar({ className, activeId = 'new-blueprint', onNavigate }: S
       <div className="px-4 pb-6 space-y-2">
         <div className="h-px bg-white/5 w-full mb-4"></div>
         {bottomItems.map((item) => {
+          const isActive = item.id === activeId;
           const Icon = item.icon;
           return (
-            <div
+            <motion.div
               key={item.id}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onNavigate?.(item.id)}
               className={cn(
-                "flex items-center space-x-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300",
-                activeId === item.id ? "bg-indigo-950/40 text-blue-100" : "text-slate-400 hover:text-slate-200"
+                "relative group flex items-center space-x-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300",
+                isActive ? "bg-indigo-950/40 text-blue-100" : "text-slate-400 hover:text-slate-200"
               )}
             >
               <Icon className="w-5 h-5" />
               <span className="text-sm font-medium">{item.name}</span>
-            </div>
+              
+              {isActive && (
+                <div className="absolute inset-0 rounded-2xl border border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.5)] bg-gradient-to-r from-indigo-500/20 to-transparent pointer-events-none" />
+              )}
+              {isActive && (
+                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 rounded-r-md bg-indigo-400 shadow-[0_0_15px_rgba(129,140,248,1)]" />
+              )}
+            </motion.div>
           );
         })}
       </div>
