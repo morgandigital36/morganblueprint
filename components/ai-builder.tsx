@@ -1082,7 +1082,7 @@ ${aiInstructionsDoc}
                   </TabsContent>
                 </Tabs>
               </CardContent>
-              <CardFooter className="bg-slate-50 p-6 flex justify-between border-t">
+              <CardFooter className="bg-black/40 p-6 flex justify-between border-t border-indigo-500/10">
                 <Button variant="outline" onClick={() => setStep(1)}>Start New Project</Button>
                 <div className="flex gap-2">
                   <Button 
