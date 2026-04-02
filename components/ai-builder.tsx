@@ -83,9 +83,20 @@ const Mermaid = ({ chart }: { chart: string }) => {
     if (ref.current && chart) {
       let cleanedChart = chart.trim();
       
-      // Auto-fix for AI generating "sitemap" as a mermaid keyword
+      // Auto-fix for common AI hallucinations
+      // 1. "sitemap" keyword fix
       if (cleanedChart.startsWith('sitemap')) {
         cleanedChart = cleanedChart.replace(/^sitemap\s*/, 'graph TD\n');
+      }
+      
+      // 2. Remove standalone "---" lines that break lexical parsing
+      cleanedChart = cleanedChart.split('\n')
+        .filter(line => line.trim() !== '---')
+        .join('\n');
+      
+      // 3. Fix "stateDiagram" hallucinations (like [*] being used in graphs)
+      if (!cleanedChart.includes('stateDiagram') && cleanedChart.includes('[*]')) {
+         cleanedChart = 'stateDiagram-v2\n' + cleanedChart;
       }
 
       import('mermaid').then((mermaidModule) => {
@@ -107,7 +118,9 @@ const Mermaid = ({ chart }: { chart: string }) => {
           .catch(e => {
             console.error('Mermaid render error:', e);
             if (ref.current) {
-              ref.current.innerHTML = '<div class="text-red-500 text-xs p-4 border border-red-200 rounded bg-red-50">Gagal merender diagram. Silakan coba generate ulang.</div>';
+              ref.current.innerHTML = `<div class="text-red-500 text-[10px] p-2 border border-red-200 rounded bg-red-50/50 break-all">
+                Mermaid Error: ${e.message?.substring(0, 50)}...
+              </div>`;
             }
           });
       });
@@ -181,15 +194,15 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
     }
   }, [darkMode]);
 
-  const saveToHistory = () => {
+  const saveToHistory = (overrides?: Partial<BlueprintHistory>) => {
     const newEntry: BlueprintHistory = {
       id: Math.random().toString(36).substring(2, 9),
       timestamp: Date.now(),
-      formData,
-      workflowDoc,
-      uiUxDoc,
-      coreFeaturesDoc,
-      aiInstructionsDoc
+      formData: overrides?.formData || formData,
+      workflowDoc: overrides?.workflowDoc || workflowDoc,
+      uiUxDoc: overrides?.uiUxDoc || uiUxDoc,
+      coreFeaturesDoc: overrides?.coreFeaturesDoc || coreFeaturesDoc,
+      aiInstructionsDoc: overrides?.aiInstructionsDoc || aiInstructionsDoc
     };
     setHistory(prev => [newEntry, ...prev].slice(0, 10)); // Keep last 10
   };
@@ -438,7 +451,11 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
 
       setAiInstructionsDoc(responseText || '');
       setStep(6);
-      saveToHistory();
+      
+      // Save to history with the actual current values to avoid state race condition
+      saveToHistory({
+        aiInstructionsDoc: responseText || ''
+      });
     } catch (error) {
       console.error('Error generating instructions:', error);
       alert('Gagal menghubungi AI. Coba periksa koneksi atau ganti API key.');
@@ -511,6 +528,12 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       const folderName = formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       const projectFolder = zip.folder(folderName);
       
+      if (!workflowDoc || !uiUxDoc || !coreFeaturesDoc || !aiInstructionsDoc) {
+        if (!confirm('Beberapa dokumen masih kosong atau belum ter-generate. Lanjutkan ekspor ZIP?')) {
+          return;
+        }
+      }
+
       if (projectFolder) {
         projectFolder.file('01-workflow.md', workflowDoc);
         projectFolder.file('02-ui-ux-design.md', uiUxDoc);
