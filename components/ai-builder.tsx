@@ -80,16 +80,35 @@ const Mermaid = ({ chart }: { chart: string }) => {
 
   useEffect(() => {
     if (ref.current && chart) {
+      let cleanedChart = chart.trim();
+      
+      // Auto-fix for AI generating "sitemap" as a mermaid keyword
+      if (cleanedChart.startsWith('sitemap')) {
+        cleanedChart = cleanedChart.replace(/^sitemap\s*/, 'graph TD\n');
+      }
+
       import('mermaid').then((mermaidModule) => {
         const mermaid = mermaidModule.default;
-        mermaid.initialize({ startOnLoad: false, theme: 'default' });
-        mermaid.render(`mermaid-${Math.random().toString(36).substring(2)}`, chart)
+        mermaid.initialize({ 
+          startOnLoad: false, 
+          theme: 'default',
+          securityLevel: 'loose',
+          fontFamily: 'Inter, system-ui, sans-serif'
+        });
+        
+        const id = `mermaid-${Math.random().toString(36).substring(2, 9)}`;
+        mermaid.render(id, cleanedChart)
           .then((result) => {
             if (ref.current) {
               ref.current.innerHTML = result.svg;
             }
           })
-          .catch(e => console.error('Mermaid render error:', e));
+          .catch(e => {
+            console.error('Mermaid render error:', e);
+            if (ref.current) {
+              ref.current.innerHTML = '<div class="text-red-500 text-xs p-4 border border-red-200 rounded bg-red-50">Gagal merender diagram. Silakan coba generate ulang.</div>';
+            }
+          });
       });
     }
   }, [chart]);
@@ -277,11 +296,13 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
       ${selectedFeatureDetails}
       
       Buat dokumen "Workflow" yang komprehensif dalam format Markdown. Dokumen ini WAJIB berisi teks penjelasan naratif yang SANGAT PANJANG (minimal 500 kata), MENDETAIL, dan rapi pada setiap bagian:
-      1. User Journey Maps (Alur pengguna dari awal hingga akhir, termasuk edge cases/error). JELASKAN secara mendalam dalam bentuk paragraf deskriptif dan poin-poin ekstensif.
-      2. Logic Flow (Step-by-step proses di balik layar untuk fitur-fitur utama). JELASKAN langkah demi langkah secara tertulis dengan sangat mendetail dan tebal sebelum memberikan diagram.
+      1. User Journey Maps.
+      2. Logic Flow.
       3. Sitemap / Navigation Structure.
       
-      PENTING: Buat penjelasan teks as long as possible! Selain penjelasan teks, Anda WAJIB menyertakan diagram alur menggunakan sintaks \`\`\`mermaid ... \`\`\` (misalnya flowchart TD atau stateDiagram) sebagai pelengkap visualisasi dengan gaya profesional.
+      PENTING: Buat penjelasan teks as long as possible! Selain penjelasan teks, Anda WAJIB menyertakan diagram menggunakan sintaks \`\`\`mermaid ... \`\`\` (misalnya "graph TD" untuk sitemap, atau "flowchart TD", "stateDiagram", "sequenceDiagram") sebagai pelengkap visualisasi. 
+      
+      ATURAN KRITIS: JANGAN PERNAH menggunakan kata "sitemap" sebagai keyword pembuka diagram mermaid. Gunakan "graph TD" atau "flowchart TD" sebagai gantinya.
       
       Gunakan bahasa yang profesional dan komprehensif.`;
 
