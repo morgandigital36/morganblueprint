@@ -329,18 +329,14 @@ export default function AIBuilder({ projectToLoad, setProjectToLoad }: { project
   const toggleFramework = (framework: string) => {
     setFormData(prev => ({
       ...prev,
-      frameworks: prev.frameworks.includes(framework)
-        ? prev.frameworks.filter(f => f !== framework)
-        : [...prev.frameworks, framework]
+      frameworks: prev.frameworks.includes(framework) ? [] : [framework]
     }));
   };
 
   const toggleDatabase = (database: string) => {
     setFormData(prev => ({
       ...prev,
-      databases: prev.databases.includes(database)
-        ? prev.databases.filter(d => d !== database)
-        : [...prev.databases, database]
+      databases: prev.databases.includes(database) ? [] : [database]
     }));
   };
 
@@ -828,13 +824,13 @@ ${aiInstructionsDoc}
                 <div className="space-y-6">
                   <div className="space-y-3">
                     <label className="text-sm font-medium flex items-center gap-2">
-                       Frontend Framework <span className="text-[10px] text-slate-500 font-normal">(Bisa pilih lebih dari satu)</span>
+                       Frontend Framework <span className="text-[10px] text-slate-500 font-normal">(Pilih salah satu)</span>
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                        {FRAMEWORKS.map(f => (
                          <div 
                            key={f} 
-                           className={`flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer ${formData.frameworks.includes(f) ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/5 bg-black/20 hover:border-white/10'}`}
+                           className={`flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer ${formData.frameworks.includes(f) ? 'border-indigo-500 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-white/5 bg-black/20 hover:border-white/10'}`}
                            onClick={() => toggleFramework(f)}
                          >
                            <Checkbox 
@@ -857,13 +853,13 @@ ${aiInstructionsDoc}
 
                   <div className="space-y-3">
                     <label className="text-sm font-medium flex items-center gap-2">
-                       Database / Backend <span className="text-[10px] text-slate-500 font-normal">(Bisa pilih lebih dari satu)</span>
+                       Database / Backend <span className="text-[10px] text-slate-500 font-normal">(Pilih salah satu)</span>
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                        {DATABASES.map(d => (
                          <div 
                            key={d} 
-                           className={`flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer ${formData.databases.includes(d) ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/5 bg-black/20 hover:border-white/10'}`}
+                           className={`flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer ${formData.databases.includes(d) ? 'border-indigo-500 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-white/5 bg-black/20 hover:border-white/10'}`}
                            onClick={() => toggleDatabase(d)}
                          >
                            <Checkbox 
