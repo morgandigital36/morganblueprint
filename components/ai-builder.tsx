@@ -159,17 +159,23 @@ const Mermaid = ({ chart }: { chart: string }) => {
          cleanedChart = 'stateDiagram-v2\n' + cleanedChart;
       }
 
-      // 4. Fix labels with parentheses inside brackets: A[Text (Info)] -> A["Text (Info)"]
-      cleanedChart = cleanedChart.replace(/\[([^"\]]*[\(\)][^"\]]*)\]/g, '["$1"]');
-
-      // 5. Fix edge labels with quotes that break parsing: -- "Click Me" --> -> -- Click Me -->
+      // 4. Fix labels with special characters inside brackets: A[Text & Info (API)] -> A["Text & Info (API)"]
+      // This catches [&, (, ), /, -, _, ,]
+      cleanedChart = cleanedChart.replace(/\[([^"\]]*[&()]|[^"\]]* [^"\]]*|[^"\]]*\/|[^"\]]*\\)[^"\]]*\]/g, (match) => {
+          const content = match.slice(1, -1);
+          if (content.startsWith('"') && content.endsWith('"')) return match;
+          return `["${content}"]`;
+      });
+      
+      // 5. Fix edge labels (arrows) with quotes that break parsing
       cleanedChart = cleanedChart.replace(/--\s*"([^"]+)"\s*-->/g, '-- $1 -->');
       
       // 6. Fix nested or stray quotes in text labels
       cleanedChart = cleanedChart.replace(/(\[[^\]]*)"([^\]]*\])/g, '$1 $2');
 
-      // 7. Fix [id] inside (labels) which happens in path descriptions
-      cleanedChart = cleanedChart.replace(/\(([^" \)]*\[[^\]]+\][^" \)]*)\)/g, '("$1")');
+      // 7. Fix common parentheses and brackets issues in other shapes
+      cleanedChart = cleanedChart.replace(/\(([^" \)]*[&()\[\]][^" \)]*)\)/g, '("$1")');
+      cleanedChart = cleanedChart.replace(/\{([^" \}]+[&()][^" \}]+)\}/g, '{"$1"}');
 
       import('mermaid').then((mermaidModule) => {
         const mermaid = mermaidModule.default;
